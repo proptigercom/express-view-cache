@@ -56,12 +56,31 @@ function EVC(options) {
    * @return {function} function(req, res, next){...}
    */
 
-  this.cachingMiddleware = function (ttlInMilliSeconds) {
+  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams) {
     ttlInMilliSeconds = parseInt(ttlInMilliSeconds, 10) || 30000;
 
     return function (req, res, next) {
       if (req.method === 'GET' && req.headers.express_view_cache !== cacheKey) {
-        var key = req.originalUrl,
+        var urlToUse = req.originalUrl;
+        var query = req.query;
+        if(queryParams) {
+          if(queryParams.length===0){
+            urlToUse=req.originalUrl.split("?")[0];
+          } else {
+            var queryParamsFinal="";
+            for(var i=0;i<queryParams.length;i++){
+              if(query[queryParams[i]]){
+                queryParamsFinal+=(i==0?"?":"&")+queryParams[i]+"="+query[queryParams[i]];
+              }
+            }
+            if(req.originalUrl.indexOf("?")){
+              urlToUse=req.originalUrl.split("?")[0]+queryParamsFinal;
+            } else {
+              urlToUse=req.originalUrl+queryParamsFinal;
+            }
+          }
+        }
+        var key = urlToUse,
           data = {};
         async.waterfall([
           function (cb) {
