@@ -134,12 +134,15 @@ function EVC(options) {
             } else {
               async.series([
                 function (clb) {
-                  redisClient.hmset(key, {
-                    'savedAt': new Date(),
-                    'contentType': data['Content-Type'],
-                    'statusCode': data.statusCode,
-                    'content': data.content
-                  }, clb);
+                  if(data.statusCode == 200){
+                    redisClient.hmset(key, {
+                      'savedAt': new Date(),
+                      'contentType': data['Content-Type'],
+                      'statusCode': data.statusCode,
+                      'content': data.content
+                    }, clb);
+                  }
+                  
                 },
                 function (clb) {
                   redisClient.expire(key, Math.floor(ttlInMilliSeconds / 1000), clb);
