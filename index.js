@@ -141,8 +141,9 @@ function EVC(options) {
                       'statusCode': data.statusCode,
                       'content': data.content
                     }, clb);
+                  }else{
+                    clb();
                   }
-                  
                 },
                 function (clb) {
                   redisClient.expire(key, Math.floor(ttlInMilliSeconds / 1000), clb);
