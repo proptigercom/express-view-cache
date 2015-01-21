@@ -68,9 +68,11 @@ function EVC(options) {
             urlToUse=req.originalUrl.split("?")[0];
           } else {
             var queryParamsFinal="";
+            var count = 0;
             for(var i=0;i<queryParams.length;i++){
               if(query[queryParams[i]]){
-                queryParamsFinal+=(i==0?"?":"&")+queryParams[i]+"="+query[queryParams[i]];
+                queryParamsFinal+=(count==0?"?":"&")+queryParams[i]+"="+query[queryParams[i]];
+                count++;
               }
             }
             if(req.originalUrl.indexOf("?")){
