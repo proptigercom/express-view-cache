@@ -56,7 +56,7 @@ function EVC(options) {
    * @return {function} function(req, res, next){...}
    */
 
-  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams) {
+  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection) {
     ttlInMilliSeconds = parseInt(ttlInMilliSeconds, 10) || 30000;
 
     return function (req, res, next) {
@@ -84,6 +84,7 @@ function EVC(options) {
         }
         var key = urlToUse,
           data = {};
+          console.log("key used in caching module================="+ key);
         async.waterfall([
           function (cb) {
             async.parallel({
@@ -111,11 +112,16 @@ function EVC(options) {
               cb(null, true);
             } else {
               var headers = req.headers;
+              var flagFollowRedirection = false;
+              if(followRedirection){
+                flagFollowRedirection = followRedirection;
+              }
               headers.express_view_cache = cacheKey;
               curl({
                 'method': 'GET',
                 'headers': headers,
-                'url': 'http://localhost:' + config.appPort + key
+                'url': 'http://localhost:' + config.appPort + key,
+                'followRedirect': flagFollowRedirection
               }, function (error, response, body) {
                 if (error) {
                   cb(error);
@@ -125,6 +131,9 @@ function EVC(options) {
                   data['Content-Type'] = response.headers['content-type'];
                   data.statusCode = response.statusCode;
                   data.content = body;
+                  if(data.statusCode===301) {
+                    data.redirectUrl = response.headers.location;
+                  }
                   cb(error, false);
                 }
               });
@@ -161,7 +170,12 @@ function EVC(options) {
             res.set('Last-Modified', data['Last-Modified']);
             res.set('Content-Type', data['Content-Type']);
             res.status(data.statusCode);
-            res.send(data.content);
+            if(data.statusCode===301) {
+                res.redirect(301,data.redirectUrl);
+            }
+            else {
+                res.send(data.content);
+            }
           }
         });
       } else {
