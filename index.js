@@ -3,7 +3,8 @@ var curl = require('request'),
   url = require('url'),
   async = require('async'),
   crypto = require('crypto'),
-  redis = require('redis');
+  redis = require('redis'),
+  MobileAgent = require('mobile-agent');
 
 /**
  * @module express-view-cache
@@ -53,15 +54,25 @@ function EVC(options) {
   /**
    * @method EVC#cachingMiddleware
    * @param {Number} [ttlInMilliSeconds=30000]
+   * @param {Array} queryParams cache based on query parameter
+   * @param {Boolean} [isResponsive=true]
    * @return {function} function(req, res, next){...}
    */
 
-  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection) {
+  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection, isResponsive) {
     ttlInMilliSeconds = parseInt(ttlInMilliSeconds, 10) || 30000;
+    isResponsive = typeof isResponsive === "undefined" ? false : isResponsive;
 
     return function (req, res, next) {
       if (req.method === 'GET' && req.headers.express_view_cache !== cacheKey) {
         var urlToUse = req.originalUrl;
+
+        var responsiveSuffix = '';
+          // get device type (mobile/desktop)
+        if (!isResponsive) {
+            responsiveSuffix = isMobile(req) ? ':mobile' : ':desktop';
+        }
+
         var query = req.query;
         if(queryParams) {
           if(queryParams.length===0){
@@ -82,17 +93,19 @@ function EVC(options) {
             }
           }
         }
+
         var key = urlToUse,
+            responsiveKey = urlToUse + responsiveSuffix,
           data = {};
           console.log("key used in caching module================="+ key);
         async.waterfall([
           function (cb) {
             async.parallel({
               'dataFound': function (clb) {
-                redisClient.hgetall(key, clb);
+                redisClient.hgetall(responsiveKey, clb);
               },
               'age': function (clb) {
-                redisClient.ttl(key, clb);
+                redisClient.ttl(responsiveKey, clb);
               }
             }, function (error, obj) {
               if (error) {
@@ -146,7 +159,7 @@ function EVC(options) {
               async.series([
                 function (clb) {
                   if(data.statusCode == 200){
-                    redisClient.hmset(key, {
+                    redisClient.hmset(responsiveKey, {
                       'savedAt': new Date(),
                       'contentType': data['Content-Type'],
                       'statusCode': data.statusCode,
@@ -157,7 +170,7 @@ function EVC(options) {
                   }
                 },
                 function (clb) {
-                  redisClient.expire(key, Math.floor(ttlInMilliSeconds / 1000), clb);
+                  redisClient.expire(responsiveKey, Math.floor(ttlInMilliSeconds / 1000), clb);
                 }
               ], cb);
             }
@@ -184,6 +197,16 @@ function EVC(options) {
     };
   };
   return this;
+}
+
+/**
+ * Returns boolean value for whether the client is using mobile/desktop browser
+ * @param  {Object}  req
+ * @return {Boolean} isMobile[true/false]
+ */
+function isMobile(req) {
+    var agent = MobileAgent(req.headers["user-agent"]);
+    return agent.Mobile;
 }
 
 module.exports = exports = function (config) {
