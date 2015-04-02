@@ -122,6 +122,7 @@ function EVC(options) {
               data['Content-Type'] = dataFound.contentType;
               data.statusCode = dataFound.statusCode;
               data.content = dataFound.content;
+              data.cookie = dataFound.cookie;
               cb(null, true);
             } else {
               var headers = req.headers;
@@ -147,11 +148,15 @@ function EVC(options) {
                   if(data.statusCode===301) {
                     data.redirectUrl = response.headers.location;
                   }
+
+                  data['cookie'] = response.headers['set-cookie'];
+
                   cb(error, false);
                 }
               });
             }
           },
+
           function (hit, cb) {
             if (hit) {
               cb(null);
@@ -163,7 +168,8 @@ function EVC(options) {
                       'savedAt': new Date(),
                       'contentType': data['Content-Type'],
                       'statusCode': data.statusCode,
-                      'content': data.content
+                      'content': data.content,
+                      'cookie': data.cookie
                     }, clb);
                   }else{
                     clb();
@@ -179,14 +185,15 @@ function EVC(options) {
           if (error) {
             next(error);
           } else {
-            res.set('Expires', data.Expires);
-            res.set('Last-Modified', data['Last-Modified']);
-            res.set('Content-Type', data['Content-Type']);
-            res.status(data.statusCode);
             if(data.statusCode===301) {
-                res.redirect(301,data.redirectUrl);
-            }
-            else {
+                return res.redirect(301,data.redirectUrl);
+              } else {
+                res.setHeader('Set-Cookie', data.cookie);
+                res.set('Expires', data.Expires);
+                res.set('Last-Modified', data['Last-Modified']);
+                res.set('Content-Type', data['Content-Type']);
+                res.status(data.statusCode);
+
                 res.send(data.content);
             }
           }
