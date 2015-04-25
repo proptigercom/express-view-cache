@@ -64,6 +64,7 @@ function EVC(options) {
     isResponsive = typeof isResponsive === "undefined" ? false : isResponsive;
 
     return function (req, res, next) {
+
       if (req.method === 'GET' && req.headers.express_view_cache !== cacheKey) {
         var urlToUse = req.originalUrl;
 
@@ -122,7 +123,7 @@ function EVC(options) {
               data['Content-Type'] = dataFound.contentType;
               data.statusCode = dataFound.statusCode;
               data.content = dataFound.content;
-              data.cookie = dataFound.cookie;
+              data.cookie = res._headers['set-cookie'];
               cb(null, true);
             } else {
               var headers = req.headers;
@@ -134,7 +135,7 @@ function EVC(options) {
               curl({
                 'method': 'GET',
                 'headers': headers,
-                'url': 'http://localhost:' + config.appPort + key,
+                'url': 'http://localhost:' + config.appPort + req.originalUrl,
                 'followRedirect': flagFollowRedirection
               }, function (error, response, body) {
                 if (error) {
@@ -168,8 +169,7 @@ function EVC(options) {
                       'savedAt': new Date(),
                       'contentType': data['Content-Type'],
                       'statusCode': data.statusCode,
-                      'content': data.content,
-                      'cookie': data.cookie
+                      'content': data.content
                     }, clb);
                   }else{
                     clb();
