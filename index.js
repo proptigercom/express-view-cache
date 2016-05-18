@@ -20,7 +20,7 @@ var curl = require('request'),
  */
 
 
-function EVC(options) {
+function EVC(options, dbIndex) {
   var config = {},
     redisClient,
     o,
@@ -33,6 +33,7 @@ function EVC(options) {
       config.port = o.port || 6379;
       config.pass = o.auth ? o.auth[1] : null;
       config.appPort = process.env.PORT || 3000;
+      config.dbIndex = dbIndex;
     } else {
       throw new Error('ExpressViewCache - unable to parse ' + o + ' as redis connection string!');
     }
@@ -42,13 +43,15 @@ function EVC(options) {
       'port': options.port || 6379,
       'pass': options.pass,
       'client': options.client,
-      'appPort': options.appPort || process.env.PORT || 3000
+      'appPort': options.appPort || process.env.PORT || 3000,
+      'dbIndex': dbIndex
     };
   }
 
   redisClient = config.client || redis.createClient(config.port, config.host, {
     'auth_pass': config.pass,
-    'return_buffers': true
+    'return_buffers': true,
+    'db': config.dbIndex
   });
 
   /**
@@ -216,6 +219,6 @@ function isMobile(req) {
     return agent.Mobile;
 }
 
-module.exports = exports = function (config) {
-  return new EVC(config);
+module.exports = exports = function (config, dbIndex) {
+  return new EVC(config, dbIndex);
 };
