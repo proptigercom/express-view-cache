@@ -191,7 +191,9 @@ function EVC(options, dbIndex) {
             if(data.statusCode===301) {
                 return res.redirect(301,data.redirectUrl);
               } else {
-                res.setHeader('Set-Cookie', data.cookie);
+                if (data && data.cookie) {
+                  res.setHeader('Set-Cookie', data.cookie);
+                }
                 res.set('Expires', data.Expires);
                 res.set('Last-Modified', data['Last-Modified']);
                 res.set('Content-Type', data['Content-Type']);
