@@ -62,7 +62,7 @@ function EVC(options, dbIndex) {
    * @return {function} function(req, res, next){...}
    */
 
-  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection, isResponsive) {
+  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection, isResponsive, countryBased) {
     ttlInMilliSeconds = parseInt(ttlInMilliSeconds, 10) || 30000;
     isResponsive = typeof isResponsive === "undefined" ? false : isResponsive;
 
@@ -76,6 +76,8 @@ function EVC(options, dbIndex) {
         if (!isResponsive) {
             responsiveSuffix = isMobile(req) ? ':mobile' : ':desktop';
         }
+
+        var locationSuffix = '';
 
         var query = req.query;
         if(queryParams) {
@@ -103,7 +105,37 @@ function EVC(options, dbIndex) {
           data = {};
           console.log("key used in caching module================="+ key);
         async.waterfall([
-          function (cb) {
+          function(cb) {
+            if (!countryBased) {
+              return cb(null, '');
+            }
+
+            var cookies = new Cookies(req, res);
+            var country = cookies.get('USERCOUNTRY');
+
+            if (country) {
+                curl({
+                  'method': 'GET',
+                  'url': 'http://www.proptiger.com/app/v1/mylocation'
+                }, function(error, response, body) {
+                  if (error) {
+                    return cb(null, 'india');
+                  }
+
+                  var data = JSON.parse(body).data;
+                  if (data.userCountry && data.userCountry !== 'India') {
+                    return cb(null, 'nri');
+                  }
+
+                  return cb(null, 'india');
+                });
+            } else {
+              cb(null, country.toLowerCase());
+            }
+          },
+          function (country, cb) {
+            if (country)
+            responsiveKey = responsiveKey + ':' + country;
             async.parallel({
               'dataFound': function (clb) {
                 redisClient.hgetall(responsiveKey, clb);
