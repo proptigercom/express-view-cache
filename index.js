@@ -121,6 +121,7 @@ function EVC(options, dbIndex) {
           },
           function (dataFound, age, cb) {
             if (dataFound) {
+              console.log ("found key used in caching module=================");
               data.Expires = new Date(Date.now() + age).toUTCString();
               data['Last-Modified'] = new Date(dataFound.savedAt).toUTCString();
               data['Content-Type'] = dataFound.contentType;
