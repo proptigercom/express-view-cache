@@ -121,7 +121,7 @@ function EVC(options, dbIndex) {
           },
           function (dataFound, age, cb) {
             if (dataFound) {
-              console.log ("found key used in caching module=================");
+              console.log("key found in caching module================="+ responsiveKey);
               data.Expires = new Date(Date.now() + age).toUTCString();
               data['Last-Modified'] = new Date(dataFound.savedAt).toUTCString();
               data['Content-Type'] = dataFound.contentType;
@@ -130,6 +130,7 @@ function EVC(options, dbIndex) {
               data.cookie = res._headers['set-cookie'];
               cb(null, true);
             } else {
+              console.log("key not found in caching module================="+ responsiveKey);
               var headers = req.headers;
               var flagFollowRedirection = false;
               if(followRedirection){
@@ -164,6 +165,10 @@ function EVC(options, dbIndex) {
 
           function (hit, cb) {
             if (hit) {
+              res && res.setHeader('via-rcache', true);
+              if(req && req.headers){
+                req['headers']['via-rcache'] = true;
+              }
               cb(null);
             } else {
               async.series([
