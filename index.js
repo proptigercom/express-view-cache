@@ -54,6 +54,14 @@ function EVC(options, dbIndex) {
     'db': config.dbIndex
   });
 
+/**
+* detect if bot
+*/
+function isBot(ua){
+    var knownBots = /bot|index|spider|crawl|wget|slurp|python|nagios|baiduspider|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora|pinterest|slackbot|W3C_Validator/i;
+    return knownBots.test(ua);
+}
+
   /**
    * @method EVC#cachingMiddleware
    * @param {Number} [ttlInMilliSeconds=30000]
@@ -62,12 +70,12 @@ function EVC(options, dbIndex) {
    * @return {function} function(req, res, next){...}
    */
 
-  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection, isResponsive) {
+  this.cachingMiddleware = function (ttlInMilliSeconds,queryParams,followRedirection, isResponsive, ignoreBot) {
     ttlInMilliSeconds = parseInt(ttlInMilliSeconds, 10) || 30000;
     isResponsive = typeof isResponsive === "undefined" ? false : isResponsive;
 
     return function (req, res, next) {
-
+      if(ignoreBot && isBot(req && req.headers['user-agent'])) return false;
       if (req.method === 'GET' && req.headers.express_view_cache !== cacheKey) {
         var urlToUse = req.originalUrl;
 
